@@ -264,7 +264,20 @@ async function update(c,id,o){ return Store.update(c,id,o); }
 async function remove(c,id){ return Store.remove(c,id); }
 async function saveSettings(s){ return Store.saveSettings(s); }
 
-function getFirebaseConfig(){ try{ return JSON.parse(localStorage.getItem('sm_firebase')||'null'); }catch(e){ return null; } }
+// サイトに最初から埋め込む共有設定（5人は何もせずURLを開くだけで共有されます）
+const BAKED_CONFIG = {
+  apiKey: "AIzaSyBxRCeKlMtGXmbQut0910LzIvnG4OaLDmQ",
+  authDomain: "takumikunn-482d2.firebaseapp.com",
+  projectId: "takumikunn-482d2",
+  storageBucket: "takumikunn-482d2.firebasestorage.app",
+  messagingSenderId: "237634670355",
+  appId: "1:237634670355:web:c52af4dfe083b9429014e6"
+};
+function getFirebaseConfig(){
+  try{ const ls=JSON.parse(localStorage.getItem('sm_firebase')||'null'); if(ls&&ls.projectId) return ls; }catch(e){}
+  if(BAKED_CONFIG && BAKED_CONFIG.projectId && BAKED_CONFIG.apiKey) return BAKED_CONFIG;
+  return null;
+}
 function setShareUI(){
   const on = mode==='cloud';
   $('#sharePill').classList.toggle('on',on);
