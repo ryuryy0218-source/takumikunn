@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>営業管理ダッシュボード</title>
+<style>
+  :root{
+    --blue:#1565C0; --blue-d:#0D47A1; --blue-l:#E3F2FD;
+    --bg:#f4f6fb; --card:#ffffff; --line:#e3e8f0; --text:#1f2733; --muted:#6b7686;
+    --gold:#FFD700; --silver:#C0C0C0; --bronze:#CD7F32;
+    --ok:#2e7d32; --warn:#c62828; --shadow:0 1px 3px rgba(16,30,54,.08),0 4px 16px rgba(16,30,54,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+    background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;-webkit-text-size-adjust:100%}
+  a{color:var(--blue)}
+  .app{display:flex;min-height:100vh}
+
+  /* Sidebar */
+  .side{width:220px;background:linear-gradient(180deg,#0D47A1,#1565C0);color:#fff;flex-shrink:0;
+    display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .brand{padding:18px 18px 14px;font-weight:700;font-size:17px;display:flex;align-items:center;gap:9px;border-bottom:1px solid rgba(255,255,255,.15)}
+  .brand .dot{width:11px;height:11px;border-radius:3px;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.18)}
+  .nav{padding:10px;display:flex;flex-direction:column;gap:4px;overflow-y:auto}
+  .nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;border:0;color:#eaf1ff;
+    padding:11px 12px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:600}
+  .nav button .ic{font-size:16px;width:20px;text-align:center}
+  .nav button:hover{background:rgba(255,255,255,.12)}
+  .nav button.active{background:#fff;color:var(--blue-d)}
+  .side-foot{margin-top:auto;padding:12px;font-size:11px;color:rgba(255,255,255,.65)}
+  .share-pill{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.12);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11.5px;color:#fff}
+  .share-pill .led{width:9px;height:9px;border-radius:50%;background:#ffd54f}
+  .share-pill.on .led{background:#69f0ae}
+
+  /* Main */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .topbar{background:var(--card);border-bottom:1px solid var(--line);padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:20}
+  .topbar h1{font-size:18px;margin:0;font-weight:700}
+  .topbar .sub{color:var(--muted);font-size:12px;margin-top:2px}
+  .content{padding:22px;max-width:1180px;width:100%}
+
+  /* Cards / grid */
+  .grid{display:grid;gap:14px}
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+  .card .hd{padding:14px 16px;border-bottom:1px solid var(--line);font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .card .bd{padding:16px}
+  .kpi{padding:15px 16px}
+  .kpi .lbl{color:var(--muted);font-size:12px;font-weight:600}
+  .kpi .val{font-size:27px;font-weight:800;letter-spacing:.5px;margin-top:4px}
+  .kpi .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .kpi.accent{background:linear-gradient(135deg,#1565C0,#1e88e5);color:#fff;border:0}
+  .kpi.accent .lbl,.kpi.accent .sub{color:rgba(255,255,255,.85)}
+
+  .section-title{font-size:13px;font-weight:800;color:var(--muted);text-transform:none;margin:22px 2px 10px;letter-spacing:.3px}
+
+  /* Tables */
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  thead th{background:var(--blue-l);color:var(--blue-d);font-weight:700;position:sticky;top:0}
+  tbody tr:hover{background:#f8fafd}
+  .tbl-wrap{overflow-x:auto;border-radius:10px}
+  td.num,th.num{font-variant-numeric:tabular-nums}
+  .medal{font-weight:800}
+  .rank1 td:first-child{box-shadow:inset 4px 0 0 var(--gold)}
+  .rank2 td:first-child{box-shadow:inset 4px 0 0 var(--silver)}
+  .rank3 td:first-child{box-shadow:inset 4px 0 0 var(--bronze)}
+
+  /* Forms */
+  label.f{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:0 0 4px}
+  input,select,textarea,button{font-family:inherit;font-size:14px}
+  input[type=text],input[type=number],input[type=date],select,textarea{
+    width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--text)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(21,101,192,.12)}
+  textarea{resize:vertical;min-height:64px}
+  .form-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  .btn{display:inline-flex;align-items:center;gap:7px;background:var(--blue);color:#fff;border:0;border-radius:9px;padding:10px 16px;font-weight:700;cursor:pointer}
+  .btn:hover{background:var(--blue-d)}
+  .btn.ghost{background:#fff;color:var(--blue);border:1px solid var(--blue)}
+  .btn.sm{padding:6px 11px;font-size:12.5px;border-radius:8px}
+  .btn.danger{background:#fff;color:var(--warn);border:1px solid #ef9a9a}
+  .btn.danger:hover{background:#fdecec}
+  .row-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+  /* Progress */
+  .prog{height:9px;background:#eef1f6;border-radius:99px;overflow:hidden}
+  .prog>span{display:block;height:100%;background:linear-gradient(90deg,#1e88e5,#43a047);border-radius:99px}
+  .prog.over>span{background:linear-gradient(90deg,#fb8c00,#e53935)}
+  .pcell{min-width:160px}
+  .pcell .meta{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:4px}
+
+  /* Memo / FB cards */
+  .stack{display:flex;flex-direction:column;gap:12px}
+  .memo{border:1px solid var(--line);border-radius:12px;padding:13px 15px;background:#fff;box-shadow:var(--shadow)}
+  .memo .top{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:6px}
+  .memo .who{font-weight:800}
+  .memo .date{font-size:12px;color:var(--muted)}
+  .memo .body{white-space:pre-wrap;word-break:break-word}
+  .tag{display:inline-block;background:var(--blue-l);color:var(--blue-d);border-radius:99px;padding:2px 10px;font-size:11.5px;font-weight:700}
+  .tag.gray{background:#eef1f6;color:#5b6678}
+  .chip{display:inline-block;background:#eef4fc;color:var(--blue-d);border-radius:7px;padding:2px 8px;font-size:11.5px;font-weight:700;margin-right:6px}
+
+  .muted{color:var(--muted)}
+  .empty{color:var(--muted);text-align:center;padding:26px;font-size:13px}
+  .inline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .right{margin-left:auto}
+  .hidden{display:none!important}
+  .notice{background:#fff8e1;border:1px solid #ffe082;color:#8d6e00;border-radius:10px;padding:11px 14px;font-size:12.5px}
+  .ok-notice{background:#e8f5e9;border:1px solid #a5d6a7;color:#1b5e20}
+
+  /* Toast */
+  #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:#1f2733;color:#fff;
+    padding:11px 18px;border-radius:99px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:100}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* Mobile */
+  .mtitle{display:none}
+  @media(max-width:880px){
+    .app{flex-direction:column}
+    .side{width:100%;height:auto;position:static;flex-direction:column}
+    .brand{border-bottom:0;padding-bottom:8px}
+    .nav{flex-direction:row;overflow-x:auto;padding:6px 8px 10px;gap:6px}
+    .nav button{width:auto;white-space:nowrap;padding:9px 12px}
+    .nav button span.lbl{display:inline}
+    .side-foot{display:none}
+    .content{padding:14px}
+    .topbar{padding:12px 14px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><span class="dot"></span> 営業管理</div>
+    <nav class="nav" id="nav">
+      <button data-view="dashboard" class="active"><span class="ic">📊</span><span class="lbl">ダッシュボード</span></button>
+      <button data-view="daily"><span class="ic">📝</span><span class="lbl">日次入力</span></button>
+      <button data-view="personal"><span class="ic">🏅</span><span class="lbl">個人成績</span></button>
+      <button data-view="memo"><span class="ic">🗒️</span><span class="lbl">終礼メモ</span></button>
+      <button data-view="feedback"><span class="ic">💬</span><span class="lbl">商談FB</span></button>
+      <button data-view="settings"><span class="ic">⚙️</span><span class="lbl">設定</span></button>
+    </nav>
+    <div class="side-foot">
+      <div class="share-pill" id="sharePill"><span class="led"></span><span id="shareText">この端末のみ</span></div>
+      <div>営業管理ダッシュボード</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="pageTitle">ダッシュボード</h1>
+        <div class="sub" id="pageSub"></div>
+      </div>
+      <div class="inline" id="topRight"></div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+/* =========================================================================
+ * 営業管理ダッシュボード  (single-file SPA)
+ * - 既定では「この端末のみ」(localStorage) で動作
+ * - 設定 > 共有設定 に Firebase の設定を貼ると「5人リアルタイム共有」に切替
+ * ========================================================================= */
+
+const METRICS = [
+  {key:'calls',  label:'コール数'},
+  {key:'appts',  label:'アポ数'},
+  {key:'visits', label:'訪問数'},
+  {key:'orders', label:'受注数'},
+  {key:'orderP', label:'受注P'},
+  {key:'flow',   label:'流れ数'},
+];
+const TARGET_METRICS = ['calls','appts','visits','orders','orderP'];
+
+const DEFAULT_SETTINGS = {
+  staff: ['営業1','営業2','営業3','営業4','営業5'],
+  targets: {}, // { name: {calls,appts,visits,orders,orderP} } 月間目標
+};
+
+/* ---------- utils ---------- */
+const $ = (s,el=document)=>el.querySelector(s);
+const uid = ()=> (crypto.randomUUID ? crypto.randomUUID() : 'id'+Date.now()+Math.random().toString(16).slice(2));
+const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => { const n = parseFloat(v); return isNaN(n)?0:n; };
+const fmt = n => (Math.round(n*10)/10).toLocaleString('ja-JP');
+const pct = (a,b)=> b>0 ? (a/b*100) : 0;
+const pctTxt = (a,b)=> b>0 ? (a/b*100).toFixed(1)+'%' : '—';
+function todayStr(){ const d=new Date(); return ymd(d); }
+function ymd(d){ const x=new Date(d); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
+function parseD(s){ const p=String(s).split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
+function weekStart(d){ const x=parseD(ymd(d)); const day=(x.getDay()+6)%7; x.setDate(x.getDate()-day); return x; }
+function sameWeek(a,b){ return weekStart(a).getTime()===weekStart(b).getTime(); }
+function monthKey(d){ return ymd(d).slice(0,7); }
+function fmtDateJP(s){ const d=parseD(s); const w=['日','月','火','水','木','金','土'][d.getDay()]; return `${d.getMonth()+1}/${d.getDate()}(${w})`; }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800); }
+
+/* ===================================================================== */
+/* Storage layer: local (default) or cloud (Firebase Firestore)          */
+/* ===================================================================== */
+const state = { daily:[], memos:[], feedback:[], settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS)) };
+const COLLS = ['daily','memos','feedback'];
+let onDataChange = ()=>{};
+
+const Local = {
+  key:{daily:'sm_daily',memos:'sm_memos',feedback:'sm_feedback',settings:'sm_settings'},
+  read(k,def){ try{ const v=JSON.parse(localStorage.getItem(k)); return v??def; }catch(e){ return def; } },
+  init(){
+    COLLS.forEach(c=> state[c]=this.read(this.key[c],[]) );
+    state.settings = Object.assign(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), this.read(this.key.settings,{}));
+    window.addEventListener('storage',(e)=>{
+      COLLS.forEach(c=>{ if(e.key===this.key[c]) state[c]=this.read(this.key[c],[]); });
+      if(e.key===this.key.settings) state.settings=Object.assign(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),this.read(this.key.settings,{}));
+      onDataChange();
+    });
+    onDataChange();
+  },
+  add(c,o){ o.id=uid(); state[c].push(o); localStorage.setItem(this.key[c],JSON.stringify(state[c])); onDataChange(); },
+  update(c,id,o){ const i=state[c].findIndex(x=>x.id===id); if(i>=0){ state[c][i]=Object.assign({},state[c][i],o,{id}); localStorage.setItem(this.key[c],JSON.stringify(state[c])); onDataChange(); } },
+  remove(c,id){ state[c]=state[c].filter(x=>x.id!==id); localStorage.setItem(this.key[c],JSON.stringify(state[c])); onDataChange(); },
+  saveSettings(s){ state.settings=s; localStorage.setItem(this.key.settings,JSON.stringify(s)); onDataChange(); },
+};
+
+const Cloud = {
+  db:null, fns:null, unsub:[],
+  async init(config){
+    const appMod = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js');
+    const fsMod  = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js');
+    const app = appMod.initializeApp(config);
+    this.db = fsMod.getFirestore(app);
+    this.fns = fsMod;
+    const {collection,onSnapshot,doc,query,orderBy} = fsMod;
+    COLLS.forEach(c=>{
+      const un = onSnapshot(collection(this.db,c),(snap)=>{
+        state[c]=snap.docs.map(d=>Object.assign({id:d.id},d.data()));
+        onDataChange();
+      },(err)=>console.warn('snapshot',c,err));
+      this.unsub.push(un);
+    });
+    const un2 = onSnapshot(doc(this.db,'meta','settings'),(d)=>{
+      if(d.exists()) state.settings=Object.assign(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),d.data());
+      onDataChange();
+    });
+    this.unsub.push(un2);
+  },
+  async add(c,o){ await this.fns.addDoc(this.fns.collection(this.db,c),o); },
+  async update(c,id,o){ await this.fns.setDoc(this.fns.doc(this.db,c,id),o,{merge:true}); },
+  async remove(c,id){ await this.fns.deleteDoc(this.fns.doc(this.db,c,id)); },
+  async saveSettings(s){ await this.fns.setDoc(this.fns.doc(this.db,'meta','settings'),s); },
+};
+
+let Store = Local;           // active backend
+let mode = 'local';
+
+async function add(c,o){ return Store.add(c,o); }
+async function update(c,id,o){ return Store.update(c,id,o); }
+async function remove(c,id){ return Store.remove(c,id); }
+async function saveSettings(s){ return Store.saveSettings(s); }
+
+function getFirebaseConfig(){ try{ return JSON.parse(localStorage.getItem('sm_firebase')||'null'); }catch(e){ return null; } }
+function setShareUI(){
+  const on = mode==='cloud';
+  $('#sharePill').classList.toggle('on',on);
+  $('#shareText').textContent = on ? '5人で共有中' : 'この端末のみ';
+}
+
+async function boot(){
+  const cfg = getFirebaseConfig();
+  if(cfg && cfg.projectId){
+    try{
+      Store = Cloud; mode='cloud';
+      await Cloud.init(cfg);
+      setShareUI();
+    }catch(e){
+      console.error(e);
+      Store = Local; mode='local'; Local.init(); setShareUI();
+      toast('共有接続に失敗。端末のみで起動しました');
+    }
+  }else{
+    Local.init(); setShareUI();
+  }
+}
+
+/* ===================================================================== */
+/* Aggregation helpers                                                   */
+/* ===================================================================== */
+function entriesFor(filterFn){ return state.daily.filter(e=>e.date && filterFn(e)); }
+function sumMetrics(list){
+  const t={calls:0,appts:0,visits:0,orders:0,orderP:0,flow:0};
+  list.forEach(e=>METRICS.forEach(m=>t[m.key]+=num(e[m.key])));
+  return t;
+}
+function periodFilter(period){
+  const t=todayStr();
+  if(period==='today') return e=>e.date===t;
+  if(period==='week')  return e=>sameWeek(e.date,t);
+  return e=>monthKey(e.date)===monthKey(t); // month
+}
+function staffMonthTarget(name){ return (state.settings.targets&&state.settings.targets[name])||{}; }
+
+/* ===================================================================== */
+/* Views                                                                 */
+/* ===================================================================== */
+const PAGE={dashboard:'ダッシュボード',daily:'日次入力',personal:'個人成績',memo:'終礼メモ',feedback:'商談FB',settings:'設定'};
+let current='dashboard';
+let dashPeriod='month', dashMetric='orders';
+
+function render(){
+  $('#pageTitle').textContent=PAGE[current];
+  setShareUI();
+  const c=$('#content'); $('#topRight').innerHTML='';
+  ({dashboard:renderDashboard,daily:renderDaily,personal:renderPersonal,memo:renderMemo,feedback:renderFeedback,settings:renderSettings}[current])(c);
+}
+onDataChange = ()=>{ try{render();}catch(e){console.error(e);} };
+
+/* ---------- Dashboard ---------- */
+function renderDashboard(c){
+  $('#pageSub').textContent = new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+  const mtot=sumMetrics(entriesFor(periodFilter('month')));
+  const wtot=sumMetrics(entriesFor(periodFilter('week')));
+  const dtot=sumMetrics(entriesFor(periodFilter('today')));
+
+  const kpiCard=(lbl,m,accent)=>`<div class="card kpi ${accent?'accent':''}">
+      <div class="lbl">${lbl}</div>
+      <div class="val">${fmt(m.orders)}<span style="font-size:14px;font-weight:600"> 受注</span></div>
+      <div class="sub">コール ${fmt(m.calls)} ／ アポ ${fmt(m.appts)} ／ 訪問 ${fmt(m.visits)}</div>
+      <div class="sub">受注P ${fmt(m.orderP)} ／ アポ率 ${pctTxt(m.appts,m.calls)} ／ 受注率 ${pctTxt(m.orders,m.visits)}</div>
+    </div>`;
+
+  let html = `<div class="grid kpis">
+      ${kpiCard('今日 チーム合計',dtot,false)}
+      ${kpiCard('今週 チーム合計',wtot,false)}
+      ${kpiCard('今月 チーム合計',mtot,true)}
+    </div>`;
+
+  // ranking
+  const filt=periodFilter(dashPeriod);
+  const rows = state.settings.staff.filter(Boolean).map(name=>{
+    const m=sumMetrics(entriesFor(e=>e.staff===name && filt(e)));
+    return {name,...m};
+  }).sort((a,b)=> num(b[dashMetric])-num(a[dashMetric]));
+
+  const metricOpts=METRICS.map(m=>`<option value="${m.key}" ${m.key===dashMetric?'selected':''}>${m.label}</option>`).join('');
+  const pBtn=(v,l)=>`<button class="btn sm ${dashPeriod===v?'':'ghost'}" onclick="App.dashPeriod('${v}')">${l}</button>`;
+
+  html += `<div class="section-title">ランキング & 進捗</div>
+   <div class="card"><div class="hd"><span>担当者ランキング</span>
+     <span class="inline">${pBtn('today','今日')}${pBtn('week','今週')}${pBtn('month','今月')}
+       <select style="width:auto" onchange="App.dashMetric(this.value)">${metricOpts}</select></span></div>
+     <div class="bd"><div class="tbl-wrap"><table><thead><tr>
+       <th>順位 / 担当者</th><th class="num">コール</th><th class="num">アポ</th><th class="num">訪問</th>
+       <th class="num">受注</th><th class="num">受注P</th><th class="num">流れ</th><th class="num">アポ率</th><th class="num">受注率</th>
+     </tr></thead><tbody>`;
+  if(rows.every(r=>r.calls+r.appts+r.visits+r.orders+r.orderP+r.flow===0)){
+    html+=`<tr><td colspan="9" class="empty">この期間のデータがありません。「日次入力」から登録してください。</td></tr>`;
+  }else{
+    rows.forEach((r,i)=>{
+      const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'位';
+      html+=`<tr class="${i<3?'rank'+(i+1):''}"><td><span class="medal">${medal}</span> ${esc(r.name)}</td>
+        <td class="num">${fmt(r.calls)}</td><td class="num">${fmt(r.appts)}</td><td class="num">${fmt(r.visits)}</td>
+        <td class="num">${fmt(r.orders)}</td><td class="num">${fmt(r.orderP)}</td><td class="num">${fmt(r.flow)}</td>
+        <td class="num">${pctTxt(r.appts,r.calls)}</td><td class="num">${pctTxt(r.orders,r.visits)}</td></tr>`;
+    });
+  }
+  html+=`</tbody></table></div></div>`;
+
+  // team monthly progress vs total targets
+  const teamTarget={}; TARGET_METRICS.forEach(k=>teamTarget[k]=0);
+  state.settings.staff.filter(Boolean).forEach(n=>{ const t=staffMonthTarget(n); TARGET_METRICS.forEach(k=>teamTarget[k]+=num(t[k])); });
+  const hasTarget=TARGET_METRICS.some(k=>teamTarget[k]>0);
+  if(hasTarget){
+    html+=`<div class="section-title">今月のチーム目標 進捗</div><div class="card"><div class="bd grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">`;
+    TARGET_METRICS.forEach(k=>{
+      const tg=teamTarget[k]; if(!tg) return;
+      const ac=mtot[k]; html+=progressCell(METRICS.find(m=>m.key===k).label,ac,tg);
+    });
+    html+=`</div></div>`;
+  }else{
+    html+=`<div class="notice" style="margin-top:14px">💡 「設定」で各担当者の<b>月間目標</b>を入力すると、ここに進捗バーが表示されます。</div>`;
+  }
+
+  // latest memos & feedback quick view
+  const recentMemos=[...state.memos].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,3);
+  const recentFb=[...state.feedback].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,3);
+  html+=`<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));margin-top:20px">
+    <div class="card"><div class="hd"><span>🗒️ 最新の終礼メモ</span><button class="btn sm ghost" onclick="App.go('memo')">すべて見る</button></div>
+      <div class="bd stack">${recentMemos.length?recentMemos.map(memoHTML).join(''):'<div class="empty">まだメモがありません</div>'}</div></div>
+    <div class="card"><div class="hd"><span>💬 最新の商談FB</span><button class="btn sm ghost" onclick="App.go('feedback')">すべて見る</button></div>
+      <div class="bd stack">${recentFb.length?recentFb.map(fbHTML).join(''):'<div class="empty">まだFBがありません</div>'}</div></div>
+  </div>`;
+
+  c.innerHTML=html;
+}
+function progressCell(label,actual,target){
+  const p=target>0?Math.min(actual/target*100,100):0;
+  const over=actual>target;
+  return `<div class="pcell"><div class="meta"><span><b>${label}</b></span><span>${fmt(actual)} / ${fmt(target)}（${target>0?Math.round(actual/target*100):0}%）</span></div>
+    <div class="prog ${over?'over':''}"><span style="width:${p}%"></span></div></div>`;
+}
+
+/* ---------- Daily input ---------- */
+let editId=null;
+function renderDaily(c){
+  $('#pageSub').textContent='1日の活動量を担当者ごとに記録します';
+  const staffOpts=state.settings.staff.filter(Boolean).map(s=>`<option>${esc(s)}</option>`).join('');
+  const metricInputs=METRICS.map(m=>`<div><label class="f">${m.label}</label><input type="number" min="0" id="i_${m.key}" placeholder="0"></div>`).join('');
+  const recent=[...state.daily].sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b.createdAt||0)-(a.createdAt||0)).slice(0,60);
+
+  c.innerHTML=`
+   <div class="card"><div class="hd"><span>${editId?'✏️ 記録を編集':'＋ 日次データを入力'}</span>${editId?'<button class="btn sm ghost" onclick="App.cancelEdit()">新規入力に戻る</button>':''}</div>
+    <div class="bd">
+     <div class="form-grid">
+       <div><label class="f">日付</label><input type="date" id="i_date" value="${todayStr()}"></div>
+       <div><label class="f">担当者</label><select id="i_staff">${staffOpts}</select></div>
+       ${metricInputs}
+     </div>
+     <div style="margin-top:12px"><label class="f">一言コメント</label><textarea id="i_comment" placeholder="今日の気づき・状況など"></textarea></div>
+     <div class="inline" style="margin-top:14px"><button class="btn" onclick="App.saveDaily()">${editId?'更新する':'登録する'}</button>
+       <span class="muted" id="i_calc"></span></div>
+    </div></div>
+
+   <div class="section-title">最近の入力（最新60件）</div>
+   <div class="card"><div class="bd"><div class="tbl-wrap"><table><thead><tr>
+     <th>日付</th><th>担当者</th><th class="num">コール</th><th class="num">アポ</th><th class="num">訪問</th><th class="num">受注</th><th class="num">受注P</th><th class="num">流れ</th>
+     <th class="num">アポ率</th><th class="num">訪問率</th><th class="num">受注率</th><th>コメント</th><th></th>
+   </tr></thead><tbody>${
+     recent.length?recent.map(e=>`<tr>
+       <td>${esc(e.date)}</td><td>${esc(e.staff)}</td>
+       <td class="num">${fmt(num(e.calls))}</td><td class="num">${fmt(num(e.appts))}</td><td class="num">${fmt(num(e.visits))}</td>
+       <td class="num">${fmt(num(e.orders))}</td><td class="num">${fmt(num(e.orderP))}</td><td class="num">${fmt(num(e.flow))}</td>
+       <td class="num">${pctTxt(num(e.appts),num(e.calls))}</td><td class="num">${pctTxt(num(e.visits),num(e.appts))}</td><td class="num">${pctTxt(num(e.orders),num(e.visits))}</td>
+       <td title="${esc(e.comment)}" style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${esc(e.comment||'')}</td>
+       <td><div class="row-actions"><button class="btn sm ghost" onclick="App.editDaily('${e.id}')">編集</button><button class="btn sm danger" onclick="App.delDaily('${e.id}')">削除</button></div></td>
+     </tr>`).join(''):`<tr><td colspan="13" class="empty">まだ入力がありません</td></tr>`
+   }</tbody></table></div></div></div>`;
+
+  if(editId){
+    const e=state.daily.find(x=>x.id===editId);
+    if(e){ $('#i_date').value=e.date||todayStr(); $('#i_staff').value=e.staff||''; METRICS.forEach(m=>$('#i_'+m.key).value=e[m.key]??''); $('#i_comment').value=e.comment||''; }
+  }
+}
+
+/* ---------- Personal ---------- */
+let personStaff=null;
+function renderPersonal(c){
+  $('#pageSub').textContent='担当者ごとの週次・月次の進捗';
+  const staff=state.settings.staff.filter(Boolean);
+  if(!staff.length){ c.innerHTML='<div class="empty">先に「設定」で担当者を登録してください</div>'; return; }
+  if(!personStaff||!staff.includes(personStaff)) personStaff=staff[0];
+
+  const opts=staff.map(s=>`<option ${s===personStaff?'selected':''}>${esc(s)}</option>`).join('');
+  const mEntries=entriesFor(e=>e.staff===personStaff && monthKey(e.date)===monthKey(todayStr()));
+  const wEntries=entriesFor(e=>e.staff===personStaff && sameWeek(e.date,todayStr()));
+  const dEntries=entriesFor(e=>e.staff===personStaff && e.date===todayStr());
+  const m=sumMetrics(mEntries), w=sumMetrics(wEntries), d=sumMetrics(dEntries);
+  const tg=staffMonthTarget(personStaff);
+
+  const compCard=(title,t)=>`<div class="card kpi"><div class="lbl">${title}</div>
+     <div class="val">${fmt(t.orders)}<span style="font-size:13px;font-weight:600"> 受注</span></div>
+     <div class="sub">コール ${fmt(t.calls)}／アポ ${fmt(t.appts)}／訪問 ${fmt(t.visits)}</div>
+     <div class="sub">受注P ${fmt(t.orderP)}／流れ ${fmt(t.flow)}</div></div>`;
+
+  let prog='';
+  if(TARGET_METRICS.some(k=>num(tg[k])>0)){
+    prog=`<div class="section-title">今月の目標 進捗</div><div class="card"><div class="bd grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">`;
+    TARGET_METRICS.forEach(k=>{ if(num(tg[k])>0) prog+=progressCell(METRICS.find(x=>x.key===k).label,m[k],num(tg[k])); });
+    prog+=`</div></div>`;
+  }else{
+    prog=`<div class="notice" style="margin-top:14px">💡 「設定」で ${esc(personStaff)} の月間目標を入れると進捗バーが出ます。</div>`;
+  }
+
+  const list=[...mEntries].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,40);
+
+  c.innerHTML=`
+   <div class="card"><div class="bd inline">
+     <label class="f" style="margin:0">担当者</label>
+     <select style="width:auto;min-width:160px" onchange="App.setPerson(this.value)">${opts}</select>
+     <span class="right muted">アポ率 ${pctTxt(m.appts,m.calls)}／訪問率 ${pctTxt(m.visits,m.appts)}／受注率 ${pctTxt(m.orders,m.visits)}（今月）</span>
+   </div></div>
+   <div class="grid kpis" style="margin-top:14px">${compCard('今日',d)}${compCard('今週',w)}${compCard('今月',m)}</div>
+   ${prog}
+   <div class="section-title">今月の記録（${esc(personStaff)}）</div>
+   <div class="card"><div class="bd"><div class="tbl-wrap"><table><thead><tr>
+     <th>日付</th><th class="num">コール</th><th class="num">アポ</th><th class="num">訪問</th><th class="num">受注</th><th class="num">受注P</th><th class="num">流れ</th><th>コメント</th>
+   </tr></thead><tbody>${
+     list.length?list.map(e=>`<tr><td>${fmtDateJP(e.date)}</td>
+       <td class="num">${fmt(num(e.calls))}</td><td class="num">${fmt(num(e.appts))}</td><td class="num">${fmt(num(e.visits))}</td>
+       <td class="num">${fmt(num(e.orders))}</td><td class="num">${fmt(num(e.orderP))}</td><td class="num">${fmt(num(e.flow))}</td>
+       <td style="max-width:240px;white-space:normal">${esc(e.comment||'')}</td></tr>`).join(''):'<tr><td colspan="8" class="empty">今月の記録はまだありません</td></tr>'
+   }</tbody></table></div></div></div>`;
+}
+
+/* ---------- Memo (終礼) ---------- */
+function memoHTML(mo){
+  return `<div class="memo"><div class="top"><div><span class="who">${esc(mo.author||'—')}</span> <span class="date">${esc(mo.date||'')} の終礼</span></div>
+    <button class="btn sm danger" onclick="App.delMemo('${mo.id}')">削除</button></div>
+    <div class="body">${esc(mo.text||'')}</div></div>`;
+}
+function renderMemo(c){
+  $('#pageSub').textContent='その日の終礼内容を全員で共有（見やすいボード形式）';
+  const staffOpts=state.settings.staff.filter(Boolean).map(s=>`<option>${esc(s)}</option>`).join('');
+  const groups={};
+  [...state.memos].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||0)-(a.createdAt||0))
+    .forEach(mo=>{ (groups[mo.date||'(日付なし)']=groups[mo.date||'(日付なし)']||[]).push(mo); });
+
+  let board='';
+  const keys=Object.keys(groups);
+  if(!keys.length){ board='<div class="empty">まだ終礼メモがありません。上のフォームから記録しましょう。</div>'; }
+  else keys.forEach(dt=>{
+    board+=`<div class="section-title">${esc(dt)}（${fmtDateJP(dt)!=='NaN/NaN(undefined)'?fmtDateJP(dt):''}）</div><div class="stack">${groups[dt].map(memoHTML).join('')}</div>`;
+  });
+
+  c.innerHTML=`
+   <div class="card"><div class="hd"><span>＋ 終礼メモを書く</span></div><div class="bd">
+     <div class="form-grid" style="grid-template-columns:160px 200px">
+       <div><label class="f">日付</label><input type="date" id="m_date" value="${todayStr()}"></div>
+       <div><label class="f">記入者</label><select id="m_author">${staffOpts}<option>全体</option></select></div>
+     </div>
+     <div style="margin-top:12px"><label class="f">終礼の内容</label>
+       <textarea id="m_text" style="min-height:110px" placeholder="今日の共有事項・反省・明日の動き など。改行OK。"></textarea></div>
+     <div style="margin-top:12px"><button class="btn" onclick="App.saveMemo()">投稿する</button></div>
+   </div></div>
+   <div style="margin-top:8px">${board}</div>`;
+}
+
+/* ---------- Feedback (商談FB) ---------- */
+let fbFilter='';
+function fbHTML(f){
+  const r=f.result?`<span class="tag ${f.result==='受注'?'':'gray'}">${esc(f.result)}</span>`:'';
+  return `<div class="memo"><div class="top">
+      <div><span class="chip">${esc(f.company||'屋号未記入')}</span> ${r}</div>
+      <button class="btn sm danger" onclick="App.delFb('${f.id}')">削除</button></div>
+    <div class="date" style="margin-bottom:6px">${esc(f.date||'')}　担当：${esc(f.staff||'—')}</div>
+    <div class="body">${esc(f.content||'')}</div></div>`;
+}
+function renderFeedback(c){
+  $('#pageSub').textContent='商談のフィードバックを蓄積（日付・屋号名・内容）';
+  const staffOpts=state.settings.staff.filter(Boolean).map(s=>`<option>${esc(s)}</option>`).join('');
+  let list=[...state.feedback].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||0)-(a.createdAt||0));
+  if(fbFilter){ const q=fbFilter.toLowerCase(); list=list.filter(f=>[f.company,f.staff,f.content,f.result].some(v=>(v||'').toLowerCase().includes(q))); }
+
+  c.innerHTML=`
+   <div class="card"><div class="hd"><span>＋ 商談フィードバックを記録</span></div><div class="bd">
+     <div class="form-grid">
+       <div><label class="f">商談日</label><input type="date" id="f_date" value="${todayStr()}"></div>
+       <div><label class="f">担当者</label><select id="f_staff">${staffOpts}</select></div>
+       <div><label class="f">屋号名（企業名）</label><input type="text" id="f_company" placeholder="例：◯◯商店"></div>
+       <div><label class="f">結果</label><select id="f_result"><option value="">未設定</option><option>受注</option><option>追客中</option><option>検討中</option><option>失注</option><option>流れ</option></select></div>
+     </div>
+     <div style="margin-top:12px"><label class="f">FB内容</label>
+       <textarea id="f_content" style="min-height:90px" placeholder="どんな商談だったか／反応／次アクション など"></textarea></div>
+     <div style="margin-top:12px"><button class="btn" onclick="App.saveFb()">記録する</button></div>
+   </div></div>
+   <div class="section-title">商談ログ（${list.length}件）</div>
+   <div class="card"><div class="bd inline"><input type="text" placeholder="屋号名・担当・内容で検索" value="${esc(fbFilter)}" oninput="App.fbSearch(this.value)" style="max-width:320px"></div></div>
+   <div class="stack" style="margin-top:12px">${list.length?list.map(fbHTML).join(''):'<div class="empty">まだ商談FBがありません</div>'}</div>`;
+}
+
+/* ---------- Settings ---------- */
+function renderSettings(c){
+  $('#pageSub').textContent='担当者・目標・共有（5人リアルタイム）の設定';
+  const staff=state.settings.staff.slice();
+  while(staff.length<5) staff.push('');
+  const staffRows=staff.map((s,i)=>`<div><label class="f">担当者 ${i+1}</label><input type="text" id="st_${i}" value="${esc(s)}" placeholder="名前（空欄で無効）"></div>`).join('');
+
+  // targets grid
+  const activeStaff=state.settings.staff.filter(Boolean);
+  let tgRows=activeStaff.map(n=>{
+    const t=staffMonthTarget(n);
+    return `<tr><td>${esc(n)}</td>${TARGET_METRICS.map(k=>`<td><input type="number" min="0" style="width:90px" data-tg="${esc(n)}" data-k="${k}" value="${t[k]??''}" placeholder="0"></td>`).join('')}</tr>`;
+  }).join('');
+  if(!activeStaff.length) tgRows=`<tr><td colspan="6" class="empty">担当者を保存すると目標を設定できます</td></tr>`;
+
+  const cfg=getFirebaseConfig();
+  const shareOn=mode==='cloud';
+
+  c.innerHTML=`
+   <div class="card"><div class="hd"><span>👥 担当者（最大5人）</span></div><div class="bd">
+     <div class="form-grid">${staffRows}</div>
+     <div style="margin-top:14px"><button class="btn" onclick="App.saveStaff()">担当者を保存</button></div>
+   </div></div>
+
+   <div class="card" style="margin-top:16px"><div class="hd"><span>🎯 月間目標（個人別）</span></div><div class="bd">
+     <div class="tbl-wrap"><table><thead><tr><th>担当者</th>${TARGET_METRICS.map(k=>`<th class="num">${METRICS.find(m=>m.key===k).label}</th>`).join('')}</tr></thead>
+       <tbody>${tgRows}</tbody></table></div>
+     <div style="margin-top:14px"><button class="btn" onclick="App.saveTargets()">目標を保存</button></div>
+   </div></div>
+
+   <div class="card" style="margin-top:16px"><div class="hd"><span>🔗 共有設定（5人リアルタイム）</span>
+     <span class="tag ${shareOn?'':'gray'}">${shareOn?'共有ON':'共有OFF（この端末のみ）'}</span></div><div class="bd">
+     <div class="notice" style="margin-bottom:12px">
+       <b>5人で同じデータをリアルタイム共有するには無料のクラウドDB（Firebase）が必要です。</b>Apps Scriptは使いません。<br>
+       ① <a href="https://console.firebase.google.com/" target="_blank" rel="noopener">Firebaseコンソール</a>で無料プロジェクト作成 →
+       ② Firestore Database を「本番/テストモード」で作成 →
+       ③ 設定 ⚙ &gt; プロジェクトの設定 &gt; マイアプリ で「ウェブ(&lt;/&gt;)」を追加 →
+       ④ 表示される <code>firebaseConfig = { ... }</code> の <b>{ } の中身（JSON）</b>を下に貼り付け → 有効化。
+       <br>同じURLを5人で開けば全員同じ画面になります。
+     </div>
+     <label class="f">firebaseConfig（JSON）</label>
+     <textarea id="fbcfg" style="min-height:140px;font-family:monospace;font-size:12.5px" placeholder='{\n  "apiKey": "...",\n  "authDomain": "xxx.firebaseapp.com",\n  "projectId": "xxx",\n  "storageBucket": "xxx.appspot.com",\n  "messagingSenderId": "...",\n  "appId": "..."\n}'>${cfg?esc(JSON.stringify(cfg,null,2)):''}</textarea>
+     <div class="inline" style="margin-top:12px">
+       ${shareOn
+         ? `<button class="btn ghost" onclick="App.pushLocalToCloud()">この端末のデータをクラウドへ送る</button>
+            <button class="btn danger" onclick="App.disableShare()">共有を解除（端末のみに戻す）</button>`
+         : `<button class="btn" onclick="App.enableShare()">共有を有効化（再読み込み）</button>`}
+     </div>
+   </div></div>
+
+   <div class="card" style="margin-top:16px"><div class="hd"><span>💾 データのバックアップ</span></div><div class="bd inline">
+     <button class="btn ghost" onclick="App.exportData()">エクスポート（JSON保存）</button>
+     <label class="btn ghost" style="cursor:pointer">インポート<input type="file" accept="application/json" style="display:none" onchange="App.importData(this.files[0])"></label>
+     <span class="muted">日次/メモ/商談FB/設定をまとめて保存・復元できます</span>
+   </div></div>`;
+}
+
+/* ===================================================================== */
+/* Actions (App.*)                                                       */
+/* ===================================================================== */
+const App={
+  go(v){ current=v; document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===v)); render(); window.scrollTo(0,0); },
+  dashPeriod(p){ dashPeriod=p; render(); },
+  dashMetric(m){ dashMetric=m; render(); },
+
+  async saveDaily(){
+    const o={date:$('#i_date').value||todayStr(), staff:$('#i_staff').value, comment:$('#i_comment').value.trim(), createdAt:Date.now()};
+    if(!o.staff){ toast('担当者を選んでください'); return; }
+    METRICS.forEach(m=>o[m.key]=num($('#i_'+m.key).value));
+    if(editId){ await update('daily',editId,o); editId=null; toast('更新しました'); }
+    else { await add('daily',o); toast('登録しました'); }
+    render();
+  },
+  editDaily(id){ editId=id; current='daily'; render(); window.scrollTo(0,0); },
+  cancelEdit(){ editId=null; render(); },
+  async delDaily(id){ if(confirm('この記録を削除しますか？')){ if(editId===id) editId=null; await remove('daily',id); toast('削除しました'); } },
+
+  setPerson(v){ personStaff=v; render(); },
+
+  async saveMemo(){
+    const o={date:$('#m_date').value||todayStr(), author:$('#m_author').value, text:$('#m_text').value.trim(), createdAt:Date.now()};
+    if(!o.text){ toast('内容を入力してください'); return; }
+    await add('memos',o); toast('投稿しました'); render();
+  },
+  async delMemo(id){ if(confirm('このメモを削除しますか？')){ await remove('memos',id); toast('削除しました'); } },
+
+  async saveFb(){
+    const o={date:$('#f_date').value||todayStr(), staff:$('#f_staff').value, company:$('#f_company').value.trim(),
+             result:$('#f_result').value, content:$('#f_content').value.trim(), createdAt:Date.now()};
+    if(!o.company && !o.content){ toast('屋号名かFB内容を入力してください'); return; }
+    await add('feedback',o); toast('記録しました'); render();
+  },
+  fbSearch(v){ fbFilter=v; const c=$('#content'); /* re-render list only-ish */ renderFeedback(c); const inp=document.querySelector('#content input[type=text]'); if(inp){inp.focus();inp.value=v; inp.setSelectionRange(v.length,v.length);} },
+  async delFb(id){ if(confirm('この商談FBを削除しますか？')){ await remove('feedback',id); toast('削除しました'); } },
+
+  async saveStaff(){
+    const arr=[]; for(let i=0;i<5;i++){ const v=$('#st_'+i).value.trim(); if(v) arr.push(v); }
+    if(!arr.length){ toast('1人以上の担当者を入力してください'); return; }
+    const s=Object.assign({},state.settings,{staff:arr});
+    await saveSettings(s); toast('担当者を保存しました'); render();
+  },
+  async saveTargets(){
+    const targets=JSON.parse(JSON.stringify(state.settings.targets||{}));
+    document.querySelectorAll('[data-tg]').forEach(inp=>{
+      const n=inp.getAttribute('data-tg'), k=inp.getAttribute('data-k');
+      targets[n]=targets[n]||{}; targets[n][k]=num(inp.value);
+    });
+    const s=Object.assign({},state.settings,{targets});
+    await saveSettings(s); toast('目標を保存しました'); render();
+  },
+
+  async enableShare(){
+    let cfg; try{ cfg=JSON.parse($('#fbcfg').value); }catch(e){ toast('JSONの形式が正しくありません'); return; }
+    if(!cfg||!cfg.projectId){ toast('projectId を含む設定を貼ってください'); return; }
+    localStorage.setItem('sm_firebase',JSON.stringify(cfg));
+    toast('共有を有効化します…再読み込みします'); setTimeout(()=>location.reload(),700);
+  },
+  disableShare(){ if(confirm('共有を解除して「この端末のみ」に戻しますか？（クラウド上のデータは消えません）')){ localStorage.removeItem('sm_firebase'); setTimeout(()=>location.reload(),300); } },
+  async pushLocalToCloud(){
+    if(mode!=='cloud'){ toast('先に共有を有効化してください'); return; }
+    if(!confirm('この端末のローカルデータをクラウドへ追加します。よろしいですか？')) return;
+    const ld={daily:Local.read('sm_daily',[]),memos:Local.read('sm_memos',[]),feedback:Local.read('sm_feedback',[])};
+    let n=0;
+    for(const cN of COLLS){ for(const item of ld[cN]){ const o=Object.assign({},item); delete o.id; await Cloud.add(cN,o); n++; } }
+    toast(n+'件をクラウドへ送りました');
+  },
+
+  exportData(){
+    const data={exportedAt:new Date().toISOString(),daily:state.daily,memos:state.memos,feedback:state.feedback,settings:state.settings};
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='営業管理_backup_'+todayStr()+'.json'; a.click();
+  },
+  async importData(file){
+    if(!file) return;
+    try{
+      const txt=await file.text(); const d=JSON.parse(txt);
+      if(!confirm('インポートすると現在のデータに追加されます。続行しますか？')) return;
+      if(d.settings) await saveSettings(Object.assign({},state.settings,d.settings));
+      for(const cN of COLLS){ if(Array.isArray(d[cN])){ for(const item of d[cN]){ const o=Object.assign({},item); delete o.id; await add(cN,o); } } }
+      toast('インポートしました'); render();
+    }catch(e){ toast('読み込みに失敗しました'); }
+  },
+};
+
+/* ---------- nav wiring ---------- */
+document.querySelectorAll('#nav button').forEach(b=> b.addEventListener('click',()=>App.go(b.dataset.view)) );
+
+/* ---------- start ---------- */
+boot().then(()=>render());
+</script>
+</body>
+</html>
